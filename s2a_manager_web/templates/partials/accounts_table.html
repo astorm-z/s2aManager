@@ -1,0 +1,92 @@
+{% if accounts %}
+<div class="table-toolbar">
+  <div>
+    <strong>{{ total }}</strong> 个账号
+    <span class="muted">第 {{ page }} / {{ total_pages }} 页</span>
+  </div>
+  <div class="muted">查询模式：{{ query_mode }}</div>
+</div>
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>名称</th>
+        <th>平台</th>
+        <th>类型</th>
+        <th>状态</th>
+        <th>优先级</th>
+        <th>并发</th>
+        <th>分组</th>
+        <th>代理</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for account in accounts %}
+      <tr>
+        <td>{{ account.id }}</td>
+        <td>{{ account.name or "-" }}</td>
+        <td>{{ account.platform or "-" }}</td>
+        <td>{{ account.type or "-" }}</td>
+        <td>{{ account.status or "-" }}{% if account.schedulable is sameas false %}（停止调度）{% endif %}</td>
+        <td>{{ account.priority if account.priority is not none else "-" }}</td>
+        <td>{{ account.concurrency if account.concurrency is not none else "-" }}</td>
+        <td {% if account.group_display_title %}title="{{ account.group_display_title }}"{% endif %}>
+          {% if account.group_display_lines %}
+            {% for group_line in account.group_display_lines[:3] %}
+            <div>{{ group_line }}</div>
+            {% endfor %}
+            {% if account.group_display_lines | length > 3 %}
+            <div class="muted">...</div>
+            {% endif %}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td>{{ account.proxy_display or "-" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">当前条件下没有账号。</div>
+{% endif %}
+
+<div class="pager">
+  <form method="get" action="/partials/accounts" data-partial-target="#accounts-panel" class="inline-form">
+    <input type="hidden" name="site_key" value="{{ form_state.site_key or current_site.key }}">
+    <input type="hidden" name="account_ids" value="{{ form_state.account_ids }}">
+    <input type="hidden" name="platform" value="{{ form_state.platform }}">
+    <input type="hidden" name="account_type" value="{{ form_state.account_type }}">
+    <input type="hidden" name="account_status" value="{{ form_state.account_status }}">
+    <input type="hidden" name="search" value="{{ form_state.search }}">
+    <input type="hidden" name="name_contains" value="{{ form_state.name_contains }}">
+    <input type="hidden" name="group_id" value="{{ form_state.group_id }}">
+    {% if form_state.ungrouped_only %}<input type="hidden" name="ungrouped_only" value="on">{% endif %}
+    <input type="hidden" name="max_accounts" value="{{ form_state.max_accounts }}">
+    <input type="hidden" name="scan_page_size" value="{{ form_state.scan_page_size }}">
+    <input type="hidden" name="batch_size" value="{{ form_state.batch_size }}">
+    <input type="hidden" name="table_page_size" value="{{ form_state.table_page_size }}">
+    <input type="hidden" name="table_page" value="{{ 1 if page <= 1 else page - 1 }}">
+    <button type="submit" class="ghost-button" {% if page <= 1 %}disabled{% endif %}>上一页</button>
+  </form>
+  <span class="muted">当前第 {{ page }} 页 / 共 {{ total_pages }} 页</span>
+  <form method="get" action="/partials/accounts" data-partial-target="#accounts-panel" class="inline-form">
+    <input type="hidden" name="site_key" value="{{ form_state.site_key or current_site.key }}">
+    <input type="hidden" name="account_ids" value="{{ form_state.account_ids }}">
+    <input type="hidden" name="platform" value="{{ form_state.platform }}">
+    <input type="hidden" name="account_type" value="{{ form_state.account_type }}">
+    <input type="hidden" name="account_status" value="{{ form_state.account_status }}">
+    <input type="hidden" name="search" value="{{ form_state.search }}">
+    <input type="hidden" name="name_contains" value="{{ form_state.name_contains }}">
+    <input type="hidden" name="group_id" value="{{ form_state.group_id }}">
+    {% if form_state.ungrouped_only %}<input type="hidden" name="ungrouped_only" value="on">{% endif %}
+    <input type="hidden" name="max_accounts" value="{{ form_state.max_accounts }}">
+    <input type="hidden" name="scan_page_size" value="{{ form_state.scan_page_size }}">
+    <input type="hidden" name="batch_size" value="{{ form_state.batch_size }}">
+    <input type="hidden" name="table_page_size" value="{{ form_state.table_page_size }}">
+    <input type="hidden" name="table_page" value="{{ page + 1 if page < total_pages else total_pages }}">
+    <button type="submit" class="ghost-button" {% if page >= total_pages %}disabled{% endif %}>下一页</button>
+  </form>
+</div>

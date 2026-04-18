@@ -1,0 +1,43 @@
+{% if error %}
+<div class="alert danger">{{ error }}</div>
+{% endif %}
+
+{% if result %}
+<div class="result-grid">
+  <div class="result-metric">
+    <span>识别模式</span>
+    <strong>{{ result.mode or "-" }}</strong>
+  </div>
+  <div class="result-metric">
+    <span>账号数量</span>
+    <strong>{{ result.account_count or 0 }}</strong>
+  </div>
+  <div class="result-metric">
+    <span>代理数量</span>
+    <strong>{{ result.proxy_count or 0 }}</strong>
+  </div>
+  <div class="result-metric">
+    <span>跳过默认分组</span>
+    <strong>{{ "是" if result.skip_default_group_bind else "否" }}</strong>
+  </div>
+</div>
+
+{% if result.warnings %}
+<div class="alert warning">{{ result.warnings | join("；") }}</div>
+{% endif %}
+
+{% if executed and result.api_result %}
+<div class="alert success">导入请求已发送到 sub2api。</div>
+<details class="json-preview" open>
+  <summary>sub2api 返回结果</summary>
+  <pre>{{ result.api_result | tojson(indent=2) }}</pre>
+</details>
+{% endif %}
+
+{% if json_preview %}
+<details class="json-preview" open>
+  <summary>最终导入请求预览</summary>
+  <pre>{{ json_preview }}</pre>
+</details>
+{% endif %}
+{% endif %}

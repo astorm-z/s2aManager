@@ -1,0 +1,529 @@
+{% extends "base.html" %}
+
+{% block title %}管理台 | S2A Manager Web{% endblock %}
+
+{% block content %}
+<section class="top-strip">
+  <div class="card compact-card top-strip-card wide">
+    <form method="get" action="/app" class="site-switch-form">
+      <input type="hidden" name="load_refs" value="1">
+      <input type="hidden" name="tab" value="{{ active_tab }}" data-active-tab-input>
+      <div class="site-switch-inline">
+        <select name="site_key">
+          {% for site in site_options %}
+          <option value="{{ site.key }}" {% if selected_site_key == site.key %}selected{% endif %}>{{ site.name }} ({{ site.key }})</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="ghost-button">切换</button>
+      </div>
+    </form>
+  </div>
+  <div class="card compact-card">
+    <p class="meta-label">站点 Key</p>
+    <p class="meta-value">{{ current_site.key }}</p>
+  </div>
+  <div class="card compact-card">
+    <p class="meta-label">默认列表分页</p>
+    <p class="meta-value">{{ settings.ui.default_list_page_size }}</p>
+  </div>
+  <div class="card compact-card">
+    <p class="meta-label">默认批量扫描</p>
+    <p class="meta-value">{{ settings.ui.default_bulk_scan_page_size }}</p>
+  </div>
+  <div class="card compact-card">
+    <p class="meta-label">任务时区</p>
+    <p class="meta-value">{{ app_timezone_name }}</p>
+  </div>
+</section>
+
+{% if site_error %}
+<div class="alert warning">
+  <strong>站点切换失败：</strong>
+  {{ site_error }}
+</div>
+{% endif %}
+
+{% if load_errors %}
+<div class="alert warning">
+  <strong>参考数据加载有问题：</strong>
+  {{ load_errors | join("；") }}
+</div>
+{% endif %}
+
+<div class="tabs-shell">
+  <div class="tabs-nav">
+    <button type="button" class="tab-button {% if active_tab == 'manage' %}active{% endif %}" data-tab-trigger="manage">管理号池</button>
+    <button type="button" class="tab-button {% if active_tab == 'import' %}active{% endif %}" data-tab-trigger="import">号池导入</button>
+    <button type="button" class="tab-button {% if active_tab == 'tasks' %}active{% endif %}" data-tab-trigger="tasks">延时任务</button>
+  </div>
+
+  <section class="tab-panel {% if active_tab == 'manage' %}active{% endif %}" data-tab-panel="manage">
+    <div class="card section-card">
+      <details class="collapse-block" open>
+        <summary class="collapse-summary">
+          <span class="collapse-heading">
+            <span class="eyebrow">manage pool</span>
+            <span class="collapse-title">筛选、查看、跨分页批量修改</span>
+            <span class="collapse-text">列表查询和批量修改共用同一组筛选条件，批量操作会扫描命中的所有分页账号。</span>
+          </span>
+        </summary>
+        <div class="collapse-body">
+          <div class="alert {% if groups or proxies %}success{% else %}warning{% endif %}">
+            <strong>手动加载模式：</strong>
+            进入页面时不会自动请求 sub2api 的分组、代理和账号列表。
+            <div class="actions-row">
+              <form method="get" action="/app" class="inline-form">
+                <input type="hidden" name="site_key" value="{{ current_site.key }}">
+                <input type="hidden" name="load_refs" value="1">
+                <input type="hidden" name="tab" value="manage">
+                <button type="submit" class="ghost-button">加载分组和代理</button>
+              </form>
+              <span class="muted">当前已加载分组 {{ groups | length }} 个，代理 {{ proxies | length }} 个。</span>
+            </div>
+          </div>
+
+          <form id="manage-form" class="stack-form">
+            <input type="hidden" name="site_key" value="{{ current_site.key }}">
+            <div class="grid-form four-columns">
+              <label>
+                <span>指定账号 ID</span>
+                <input type="text" name="account_ids" value="{{ manage_form.account_ids }}" placeholder="支持空格、逗号、多行">
+              </label>
+              <label>
+                <span>平台</span>
+                <select name="platform">
+                  <option value="">不限</option>
+                  {% for value in ["openai", "anthropic", "gemini", "antigravity", "sora"] %}
+                  <option value="{{ value }}" {% if manage_form.platform == value %}selected{% endif %}>{{ value }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label>
+                <span>账号类型</span>
+                <select name="account_type">
+                  <option value="">不限</option>
+                  {% for value in ["oauth", "apikey", "setup-token", "upstream"] %}
+                  <option value="{{ value }}" {% if manage_form.account_type == value %}selected{% endif %}>{{ value }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label>
+                <span>账号状态</span>
+                <select name="account_status">
+                  <option value="">不限</option>
+                  {% for value in ["active", "inactive", "error"] %}
+                  <option value="{{ value }}" {% if manage_form.account_status == value %}selected{% endif %}>{{ value }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label>
+                <span>搜索关键词</span>
+                <input type="text" name="search" value="{{ manage_form.search }}">
+              </label>
+              <label>
+                <span>名称包含</span>
+                <input type="text" name="name_contains" value="{{ manage_form.name_contains }}">
+              </label>
+              <label>
+                <span>当前分组</span>
+                <select name="group_id">
+                  <option value="">{% if groups %}不限{% else %}先加载分组后再选择{% endif %}</option>
+                  {% for group in groups %}
+                  <option value="{{ group.id }}" {% if manage_form.group_id == (group.id ~ "") %}selected{% endif %}>[{{ group.id }}] {{ group.name }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label class="checkbox-row">
+                <span>仅未分组账号</span>
+                <input type="checkbox" name="ungrouped_only" {% if manage_form.ungrouped_only %}checked{% endif %}>
+              </label>
+              <label>
+                <span>最多处理数量</span>
+                <input type="number" name="max_accounts" value="{{ manage_form.max_accounts }}" min="1">
+              </label>
+              <label>
+                <span>批量扫描分页大小</span>
+                <input type="number" name="scan_page_size" value="{{ manage_form.scan_page_size }}" min="1">
+              </label>
+              <label>
+                <span>批量提交大小</span>
+                <input type="number" name="batch_size" value="{{ manage_form.batch_size }}" min="1">
+              </label>
+              <label>
+                <span>列表分页大小</span>
+                <input type="number" name="table_page_size" value="{{ manage_form.table_page_size }}" min="1">
+              </label>
+            </div>
+            <input type="hidden" name="table_page" value="{{ manage_form.table_page }}">
+            <div class="actions-row">
+              <button type="submit" class="primary-button" formaction="/partials/accounts" formmethod="get" data-partial-target="#accounts-panel">加载账号列表</button>
+            </div>
+          </form>
+        </div>
+      </details>
+    </div>
+
+    <div class="card section-card">
+      <div class="section-heading mini">
+        <h3>账号列表</h3>
+      </div>
+      <div id="accounts-panel">
+        {% if accounts_context.loaded %}
+        {% set accounts = accounts_context.accounts %}
+        {% set total = accounts_context.total %}
+        {% set page = accounts_context.page %}
+        {% set page_size = accounts_context.page_size %}
+        {% set total_pages = accounts_context.total_pages %}
+        {% set query_mode = accounts_context.query_mode %}
+        {% set form_state = accounts_context.form_state %}
+        {% include "partials/accounts_table.html" %}
+        {% else %}
+        <div class="empty-state">账号列表尚未加载。设置筛选条件后，点击上方“加载账号列表”。</div>
+        {% endif %}
+      </div>
+      {% if accounts_error %}
+      <div class="alert danger">{{ accounts_error }}</div>
+      {% endif %}
+    </div>
+
+    <div class="card section-card">
+      <details class="collapse-block">
+        <summary class="collapse-summary">
+          <span class="collapse-heading">
+            <span class="collapse-subtitle">批量修改内容</span>
+            <span class="collapse-text">支持对当前筛选命中的所有分页账号执行预览和修改。</span>
+          </span>
+        </summary>
+        <div class="collapse-body">
+          <div class="grid-form four-columns">
+            <label>
+              <span>分组操作</span>
+              <select name="update_group_action" form="manage-form">
+                <option value="__KEEP__">保持不变</option>
+                <option value="__CLEAR__">清空分组</option>
+                <option value="__SET__">{% if groups %}设为所选分组{% else %}先加载分组后再设置{% endif %}</option>
+              </select>
+            </label>
+            <label>
+              <span>目标分组（可多选）</span>
+              <select name="update_group_ids" multiple size="8" form="manage-form">
+                {% for group in groups %}
+                <option value="{{ group.id }}">[{{ group.id }}] {{ group.name }}</option>
+                {% endfor %}
+              </select>
+              <small class="form-hint">按 Ctrl / Shift 可多选。只有“分组操作”选“设为所选分组”时这里才会生效。</small>
+            </label>
+            <label>
+              <span>目标代理</span>
+              <select name="update_proxy_id" form="manage-form">
+                <option value="">{% if proxies %}保持当前代理{% else %}先加载代理后再选择{% endif %}</option>
+                <option value="__CLEAR__">清空代理</option>
+                {% for proxy in proxies %}
+                <option value="{{ proxy.id }}">[{{ proxy.id }}] {{ proxy.host }}:{{ proxy.port }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label>
+              <span>账号状态</span>
+              <select name="update_status" form="manage-form">
+                <option value="">保持不变</option>
+                {% for value in ["active", "inactive", "error"] %}
+                <option value="{{ value }}">{{ value }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label>
+              <span>允许调度</span>
+              <select name="update_schedulable" form="manage-form">
+                <option value="__KEEP__">保持不变</option>
+                <option value="__ENABLE__">启用</option>
+                <option value="__DISABLE__">禁用</option>
+              </select>
+            </label>
+            <label>
+              <span>名称改为</span>
+              <input type="text" name="update_name" form="manage-form">
+            </label>
+            <label>
+              <span>备注写入</span>
+              <input type="text" name="update_notes" form="manage-form">
+            </label>
+            <label>
+              <span>备注模式</span>
+              <select name="update_notes_mode" form="manage-form">
+                <option value="__KEEP__">保持不变</option>
+                <option value="__CLEAR__">清空备注</option>
+              </select>
+            </label>
+            <label>
+              <span>账号类型</span>
+              <select name="update_type" form="manage-form">
+                <option value="">保持不变</option>
+                {% for value in ["oauth", "apikey", "setup-token", "upstream"] %}
+                <option value="{{ value }}">{{ value }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label>
+              <span>并发数</span>
+              <input type="number" name="update_concurrency" min="1" form="manage-form">
+            </label>
+            <label>
+              <span>负载因子</span>
+              <input type="number" name="update_load_factor" form="manage-form">
+            </label>
+            <label>
+              <span>负载因子模式</span>
+              <select name="update_load_factor_mode" form="manage-form">
+                <option value="__KEEP__">保持不变</option>
+                <option value="__CLEAR__">清空</option>
+              </select>
+            </label>
+            <label>
+              <span>优先级</span>
+              <input type="number" name="update_priority" form="manage-form">
+            </label>
+            <label>
+              <span>速率倍率</span>
+              <input type="text" name="update_rate_multiplier" form="manage-form">
+            </label>
+            <label>
+              <span>过期时间</span>
+              <input type="text" name="update_expires_at" placeholder="Unix 秒或 ISO 时间" form="manage-form">
+            </label>
+            <label>
+              <span>过期时间模式</span>
+              <select name="update_expires_at_mode" form="manage-form">
+                <option value="__KEEP__">保持不变</option>
+                <option value="__CLEAR__">清空</option>
+              </select>
+            </label>
+            <label>
+              <span>到期自动暂停</span>
+              <select name="update_auto_pause" form="manage-form">
+                <option value="__KEEP__">保持不变</option>
+                <option value="__ENABLE__">启用</option>
+                <option value="__DISABLE__">禁用</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="checkbox-wide">
+            <input type="checkbox" name="confirm_mixed_channel_risk" form="manage-form">
+            <span>确认混合渠道风险（绑定分组时跳过风险拦截）</span>
+          </label>
+
+          <div class="grid-form two-columns">
+            <div class="field-block">
+              <div class="label-with-action">
+                <label for="update-credentials-json"><span>credentials JSON</span></label>
+                <button type="button" class="ghost-button mini-button" data-fill-default-target="#update-credentials-json">填充默认</button>
+              </div>
+              <textarea id="update-credentials-json" name="update_credentials_json" rows="8" placeholder='{"model_mapping":{"gpt-5.2":"gpt-5.2","gpt-5.3-codex":"gpt-5.3-codex","gpt-5.4":"gpt-5.4","gpt-5.4-mini":"gpt-5.4-mini"}}' form="manage-form"></textarea>
+            </div>
+            <label>
+              <span>extra JSON</span>
+              <textarea name="update_extra_json" rows="8" placeholder='{"source":"manual"}' form="manage-form"></textarea>
+            </label>
+          </div>
+          <label>
+            <span>底层补充更新 JSON</span>
+            <textarea name="manual_updates_json" rows="8" placeholder='{"some_future_field":"value"}' form="manage-form"></textarea>
+          </label>
+          <div class="nested-collapse">
+            <div class="grid-form four-columns">
+              <label>
+                <span>执行方式</span>
+                <select name="schedule_mode" form="manage-form" data-schedule-mode-select>
+                  <option value="immediate" selected>立即执行</option>
+                  <option value="delay_minutes">X 分钟后执行</option>
+                  <option value="run_at">指定时间点执行</option>
+                </select>
+              </label>
+              <label class="schedule-panel" data-schedule-panel="delay_minutes">
+                <span>延时分钟</span>
+                <input type="number" name="delay_minutes" min="1" placeholder="例如 30" form="manage-form">
+              </label>
+              <label class="schedule-panel" data-schedule-panel="run_at">
+                <span>指定时间</span>
+                <input type="datetime-local" name="run_at_local" form="manage-form">
+              </label>
+              <div class="schedule-hint-card">
+                <span>时间说明</span>
+                <p>延时任务按配置时区 <strong>{{ app_timezone_name }}</strong> 解析和展示，数据库内部统一保存为 UTC。</p>
+              </div>
+            </div>
+          </div>
+          <div class="actions-row">
+            <button type="submit" class="ghost-button" form="manage-form" formaction="/actions/bulk/preview" formmethod="post" data-partial-target="#bulk-result-panel">预览匹配结果</button>
+            <button type="submit" class="primary-button" form="manage-form" formaction="/actions/bulk/apply" formmethod="post" data-partial-target="#bulk-result-panel">提交执行 / 创建延时任务</button>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="card section-card">
+      <div class="section-heading mini">
+        <h3>批量操作结果</h3>
+      </div>
+      <div id="bulk-result-panel">
+        <div class="empty-state">先点击“预览匹配结果”或“提交执行 / 创建延时任务”。</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel {% if active_tab == 'import' %}active{% endif %}" data-tab-panel="import">
+    <div class="card section-card">
+      <div class="section-heading">
+        <p class="eyebrow">import pool</p>
+        <h2>预检查、预览、导入号池</h2>
+        <p>支持标准导入格式、简化账号 JSON、单账号对象和 auth snapshot，并支持 JSON / YAML / TOML 文件。</p>
+      </div>
+      <div class="alert {% if groups or proxies %}success{% else %}warning{% endif %}">
+        <strong>手动加载模式：</strong>
+        导入页的分组和代理下拉框也不会自动请求，按需手动加载即可。
+        <div class="actions-row">
+          <form method="get" action="/app" class="inline-form">
+            <input type="hidden" name="site_key" value="{{ current_site.key }}">
+            <input type="hidden" name="load_refs" value="1">
+            <input type="hidden" name="tab" value="import">
+            <button type="submit" class="ghost-button">加载分组和代理</button>
+          </form>
+          <span class="muted">当前已加载分组 {{ groups | length }} 个，代理 {{ proxies | length }} 个。</span>
+        </div>
+      </div>
+
+      <form id="import-form" class="stack-form" enctype="multipart/form-data">
+        <input type="hidden" name="site_key" value="{{ current_site.key }}">
+        <label>
+          <span>导入文件</span>
+          <input type="file" name="import_file" required>
+        </label>
+
+        <div class="grid-form four-columns">
+          <label>
+            <span>导入后目标分组</span>
+            <select name="import_group_id">
+              <option value="">{% if groups %}不额外设置{% else %}先加载分组后再选择{% endif %}</option>
+              {% for group in groups %}
+              <option value="{{ group.id }}">[{{ group.id }}] {{ group.name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>
+            <span>导入后目标代理</span>
+            <select name="import_proxy_id">
+              <option value="">{% if proxies %}不额外设置{% else %}先加载代理后再选择{% endif %}</option>
+              {% for proxy in proxies %}
+              <option value="{{ proxy.id }}">[{{ proxy.id }}] {{ proxy.host }}:{{ proxy.port }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>
+            <span>状态</span>
+            <select name="import_status">
+              <option value="">不额外设置</option>
+              {% for value in ["active", "inactive", "error"] %}
+              <option value="{{ value }}">{{ value }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>
+            <span>允许调度</span>
+            <select name="import_schedulable">
+              <option value="__KEEP__">不额外设置</option>
+              <option value="__ENABLE__">启用</option>
+              <option value="__DISABLE__">禁用</option>
+            </select>
+          </label>
+          <label>
+            <span>备注</span>
+            <input type="text" name="import_notes">
+          </label>
+          <label>
+            <span>并发数</span>
+            <input type="number" name="import_concurrency" min="1">
+          </label>
+          <label>
+            <span>优先级</span>
+            <input type="number" name="import_priority">
+          </label>
+          <label>
+            <span>负载因子</span>
+            <input type="number" name="import_load_factor">
+          </label>
+          <label>
+            <span>速率倍率</span>
+            <input type="text" name="import_rate_multiplier">
+          </label>
+          <label>
+            <span>过期时间</span>
+            <input type="text" name="import_expires_at" placeholder="Unix 秒或 ISO 时间">
+          </label>
+          <label>
+            <span>到期自动暂停</span>
+            <select name="import_auto_pause">
+              <option value="__KEEP__">不额外设置</option>
+              <option value="__ENABLE__">启用</option>
+              <option value="__DISABLE__">禁用</option>
+            </select>
+          </label>
+          <label class="checkbox-row">
+            <span>跳过默认分组绑定</span>
+            <input type="checkbox" name="import_skip_default_group_bind" {% if import_form.import_skip_default_group_bind %}checked{% endif %}>
+          </label>
+        </div>
+
+        <div class="grid-form two-columns">
+          <div class="field-block">
+            <div class="label-with-action">
+              <label for="import-credentials-json"><span>导入默认 credentials JSON</span></label>
+              <button type="button" class="ghost-button mini-button" data-fill-default-target="#import-credentials-json">填充默认</button>
+            </div>
+            <textarea id="import-credentials-json" name="import_credentials_json" rows="8" placeholder='{"model_mapping":{"gpt-5.2":"gpt-5.2","gpt-5.3-codex":"gpt-5.3-codex","gpt-5.4":"gpt-5.4","gpt-5.4-mini":"gpt-5.4-mini"}}'></textarea>
+          </div>
+          <label>
+            <span>导入默认 extra JSON</span>
+            <textarea name="import_extra_json" rows="8" placeholder='{"source":"batch-import"}'></textarea>
+          </label>
+        </div>
+        <label>
+          <span>导入默认补充 JSON</span>
+          <textarea name="import_manual_updates_json" rows="8" placeholder='{"group_ids":[1]}'></textarea>
+        </label>
+        <div class="actions-row">
+          <button type="submit" class="ghost-button" formaction="/actions/import/preview" formmethod="post" data-partial-target="#import-result-panel">预导入检查</button>
+          <button type="submit" class="primary-button" formaction="/actions/import/apply" formmethod="post" data-partial-target="#import-result-panel">执行导入</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card section-card">
+      <div class="section-heading mini">
+        <h3>导入结果</h3>
+      </div>
+      <div id="import-result-panel">
+        <div class="empty-state">先上传文件，再做预导入检查或执行导入。</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-panel {% if active_tab == 'tasks' %}active{% endif %}" data-tab-panel="tasks">
+    <div class="card section-card">
+      <div class="section-heading">
+        <p class="eyebrow">delayed tasks</p>
+        <h2>延时任务</h2>
+        <p>查看当前站点的批量修改延时任务，支持立即执行或取消。</p>
+      </div>
+      <div id="scheduled-tasks-panel">
+        {% set tasks = tasks_context.tasks %}
+        {% set status_filter = tasks_context.status_filter %}
+        {% set status_options = tasks_context.status_options %}
+        {% set message = tasks_context.message %}
+        {% set error = tasks_context.error %}
+        {% include "partials/scheduled_tasks.html" %}
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

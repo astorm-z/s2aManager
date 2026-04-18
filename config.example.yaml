@@ -1,0 +1,47 @@
+# 应用自身配置
+app:
+  # Web 服务监听地址。本机自用通常保持 127.0.0.1，只有需要局域网访问时才改成 0.0.0.0。
+  host: 127.0.0.1
+  # Web 服务监听端口。浏览器访问地址会是 http://host:port。
+  port: 8000
+  # 浏览器会话 Cookie 名称。一般无需修改，除非你要和其他本地站点区分。
+  session_cookie_name: s2a_manager_session
+  # 会话签名密钥。首次可先用示例值，正式使用时建议改成随机长字符串，否则会话安全性较弱。
+  session_secret: please-change-me
+  # 网站自身登录密码。用于进入本管理台；如果同时设置了环境变量 S2A_MANAGER_WEB_PASSWORD，则环境变量优先。
+  web_password: your-password
+  # 延时任务和页面展示所使用的时区。必须是合法 IANA 时区名，默认东八区 Asia/Shanghai。
+  timezone: Asia/Shanghai
+
+# 多个 sub2api 站点配置。页面顶部可按 key 切换。
+sites:
+  - key: default
+    name: 默认站点
+    # sub2api 站点根地址。程序会自动补成 /api/v1，无需手动加。
+    base_url: http://127.0.0.1:8080
+    # sub2api 管理员 API Key。用于读取账号、分组、代理以及执行导入和批量修改。
+    admin_api_key: ""
+    # 请求 sub2api 的超时时间，单位秒。站点较慢时可以适当调大。
+    timeout: 30.0
+    # 是否跳过 HTTPS 证书校验。只有自签名证书环境才建议设为 true。
+    insecure: false
+  - key: backup
+    name: 备用站点
+    base_url: https://example.com
+    admin_api_key: ""
+    timeout: 30.0
+    insecure: false
+
+# 默认进入页面时选中的站点 key。
+default_site_key: default
+
+# 页面默认交互配置
+ui:
+  # “管理号池”列表默认每页显示多少条账号。
+  default_list_page_size: 20
+  # 跨分页批量修改时，扫描 sub2api 账号列表所用的分页大小。
+  default_bulk_scan_page_size: 100
+  # 跨分页批量修改时，每次提交给 /admin/accounts/bulk-update 的账号数量。
+  default_bulk_batch_size: 100
+  # 导入时默认是否跳过后端的“默认分组绑定”行为。true 表示默认跳过。
+  import_skip_default_group_bind: true

@@ -1,0 +1,93 @@
+{% if error %}
+<div class="alert danger">{{ error }}</div>
+{% endif %}
+{% if message %}
+<div class="alert success">{{ message }}</div>
+{% endif %}
+
+<form method="get" action="/partials/scheduled-tasks" class="stack-form" data-partial-target="#scheduled-tasks-panel">
+  <input type="hidden" name="site_key" value="{{ current_site.key }}">
+  <div class="table-toolbar">
+    <label class="task-filter-inline">
+      <span>状态筛选</span>
+      <select name="status">
+        {% for value, label in status_options %}
+        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <div class="actions-row">
+      <button type="submit" class="ghost-button">刷新列表</button>
+    </div>
+  </div>
+</form>
+
+<p class="muted">当前站点：{{ current_site.name }}（{{ current_site.key }}），页面时间按 {{ app_timezone_name }} 展示。</p>
+
+{% if tasks %}
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>状态</th>
+        <th>执行方式</th>
+        <th>计划时间</th>
+        <th>创建时间</th>
+        <th>执行区间</th>
+        <th>修改内容</th>
+        <th>预估命中</th>
+        <th>结果摘要</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for task in tasks %}
+      <tr>
+        <td>#{{ task.id }}</td>
+        <td><span class="status-badge status-{{ task.status }}">{{ task.status_label }}</span></td>
+        <td>
+          <div>{{ task.schedule_mode_label }}</div>
+          {% if task.delay_minutes %}
+          <div class="muted">{{ task.delay_minutes }} 分钟</div>
+          {% endif %}
+        </td>
+        <td>{{ task.run_at_display }}</td>
+        <td>{{ task.created_at_display }}</td>
+        <td>
+          <div>开始：{{ task.started_at_display }}</div>
+          <div>结束：{{ task.finished_at_display }}</div>
+        </td>
+        <td>
+          <div>{{ task.updates_summary }}</div>
+          {% if task.updates_preview %}
+          <details class="inline-json-details">
+            <summary>查看 JSON</summary>
+            <pre>{{ task.updates_preview }}</pre>
+          </details>
+          {% endif %}
+        </td>
+        <td>{{ task.matched_count_preview if task.matched_count_preview is not none else "-" }}</td>
+        <td>{{ task.summary_text }}</td>
+        <td>
+          <div class="actions-row">
+            <form method="post" action="/actions/scheduled-tasks/{{ task.id }}/run-now" class="inline-form" data-partial-target="#scheduled-tasks-panel">
+              <input type="hidden" name="site_key" value="{{ current_site.key }}">
+              <input type="hidden" name="status" value="{{ status_filter }}">
+              <button type="submit" class="ghost-button mini-button" {% if not task.can_run_now %}disabled{% endif %}>立即执行</button>
+            </form>
+            <form method="post" action="/actions/scheduled-tasks/{{ task.id }}/delete" class="inline-form" data-partial-target="#scheduled-tasks-panel">
+              <input type="hidden" name="site_key" value="{{ current_site.key }}">
+              <input type="hidden" name="status" value="{{ status_filter }}">
+              <button type="submit" class="ghost-button mini-button" {% if not task.can_delete %}disabled{% endif %}>删除</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">当前没有符合条件的延时任务。</div>
+{% endif %}

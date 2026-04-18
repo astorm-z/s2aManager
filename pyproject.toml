@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "s2a-manager-web"
+version = "0.1.0"
+description = "基于 FastAPI 的 sub2api 号池管理网站"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115,<1.0",
+  "itsdangerous>=2.2,<3.0",
+  "jinja2>=3.1,<4.0",
+  "python-multipart>=0.0.20,<1.0",
+  "PyYAML>=6.0,<7.0",
+  "tzdata>=2024.1,<2027.0",
+  "uvicorn[standard]>=0.35,<1.0",
+]
+
+[tool.uv]
+package = true
+
+[tool.setuptools]
+packages = ["s2a_manager_web"]
+
+[tool.setuptools.package-data]
+s2a_manager_web = [
+  "templates/*.html",
+  "templates/partials/*.html",
+  "static/*.css",
+  "static/*.js",
+]

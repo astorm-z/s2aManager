@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}S2A Manager Web{% endblock %}</title>
+  <link rel="stylesheet" href="{{ request.url_for('static', path='style.css') }}?v=20260418-2">
+</head>
+<body data-default-tab="{{ active_tab | default('manage') }}">
+  <div class="page-shell">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">sub2api pool console</p>
+        <h1>S2A Manager Web</h1>
+        <p class="page-subtitle">本机浏览器管理台，直接连接 sub2api 管理接口。</p>
+      </div>
+      {% if request.session.get("authenticated") %}
+      <form method="post" action="/logout" class="logout-form">
+        <button type="submit" class="ghost-button">退出登录</button>
+      </form>
+      {% endif %}
+    </header>
+    {% block content %}{% endblock %}
+  </div>
+  <script src="{{ request.url_for('static', path='app.js') }}?v=20260418-2"></script>
+</body>
+</html>

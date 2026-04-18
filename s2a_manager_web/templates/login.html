@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}登录 | S2A Manager Web{% endblock %}
+
+{% block content %}
+<section class="single-card">
+  <div class="card login-card">
+    <div class="section-heading">
+      <p class="eyebrow">site gate</p>
+      <h2>进入管理台</h2>
+      <p>这个站点自身只做固定密码登录，密码通过环境变量提供。</p>
+    </div>
+    {% if error %}
+    <div class="alert danger">{{ error }}</div>
+    {% endif %}
+    <form method="post" action="/login" class="stack-form">
+      <label>
+        <span>访问密码</span>
+        <input type="password" name="password" autocomplete="current-password" required>
+      </label>
+      <button type="submit" class="primary-button">登录</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

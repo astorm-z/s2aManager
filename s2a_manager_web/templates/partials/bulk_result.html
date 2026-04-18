@@ -1,0 +1,70 @@
+{% if error %}
+<div class="alert danger">{{ error }}</div>
+{% elif result %}
+{% if result.task_created %}
+<div class="alert success">延时任务已创建，将在 {{ result.run_at_display }}（{{ result.timezone_name }}）执行。</div>
+<div data-refresh-target="#scheduled-tasks-panel" data-refresh-url="/partials/scheduled-tasks?site_key={{ current_site.key }}"></div>
+<div class="result-grid">
+  <div class="result-metric">
+    <span>任务 ID</span>
+    <strong>#{{ result.task.id }}</strong>
+  </div>
+  <div class="result-metric">
+    <span>当前状态</span>
+    <strong>{{ result.task.status_label }}</strong>
+  </div>
+  <div class="result-metric">
+    <span>预估命中</span>
+    <strong>{{ result.matched or 0 }}</strong>
+  </div>
+  <div class="result-metric">
+    <span>执行方式</span>
+    <strong>{{ result.task.schedule_mode_label }}</strong>
+  </div>
+</div>
+{% if result.single_update_only_keys %}
+<div class="alert warning">以下字段不支持 bulk 接口，任务执行时会退回逐个更新：{{ result.single_update_only_keys | join(", ") }}</div>
+{% endif %}
+{% if result.sample_ids %}
+<p class="muted">样例账号 ID：{{ result.sample_ids | join(", ") }}</p>
+{% endif %}
+<details class="json-preview" open>
+  <summary>任务详情 JSON</summary>
+  <pre>{{ json_preview }}</pre>
+</details>
+{% else %}
+<div class="result-grid">
+  <div class="result-metric">
+    <span>命中账号</span>
+    <strong>{{ result.matched or 0 }}</strong>
+  </div>
+  <div class="result-metric">
+    <span>模式</span>
+    <strong>{{ result.update_mode or "-" }}</strong>
+  </div>
+  <div class="result-metric">
+    <span>成功</span>
+    <strong>{{ result.updated_success or 0 }}</strong>
+  </div>
+  <div class="result-metric">
+    <span>失败</span>
+    <strong>{{ result.updated_failed or 0 }}</strong>
+  </div>
+</div>
+{% if result.single_update_only_keys %}
+<div class="alert warning">以下字段不支持 bulk 接口，已/将退回逐个更新：{{ result.single_update_only_keys | join(", ") }}</div>
+{% endif %}
+{% if result.sample_ids %}
+<p class="muted">样例账号 ID：{{ result.sample_ids | join(", ") }}</p>
+{% endif %}
+{% if result.failed_ids %}
+<p class="muted">失败账号 ID：{{ result.failed_ids[:20] | join(", ") }}</p>
+{% endif %}
+<details class="json-preview" open>
+  <summary>{{ "预览请求明细" if is_preview else "执行结果 JSON" }}</summary>
+  <pre>{{ json_preview }}</pre>
+</details>
+{% endif %}
+{% else %}
+<div class="empty-state">暂无结果。</div>
+{% endif %}
