@@ -82,7 +82,7 @@
             </div>
           </div>
 
-          <form id="manage-form" class="stack-form">
+          <form id="manage-form" class="stack-form" method="get" action="/partials/accounts" data-partial-target="#accounts-panel">
             <input type="hidden" name="site_key" value="{{ current_site.key }}">
             <div class="grid-form four-columns">
               <label>
@@ -156,7 +156,15 @@
             </div>
             <input type="hidden" name="table_page" value="{{ manage_form.table_page }}">
             <div class="actions-row">
-              <button type="submit" class="primary-button" formaction="/partials/accounts" formmethod="get" data-partial-target="#accounts-panel">加载账号列表</button>
+              <button
+                type="submit"
+                class="primary-button"
+                formaction="/partials/accounts"
+                formmethod="get"
+                data-partial-target="#accounts-panel"
+                data-form-value-target="#manage-form [name='table_page']"
+                data-form-value="1"
+              >加载账号列表</button>
             </div>
           </form>
         </div>

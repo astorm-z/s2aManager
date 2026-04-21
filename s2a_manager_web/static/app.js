@@ -37,6 +37,30 @@ async function requestFragment(url, options, targetSelector) {
   }
 }
 
+function applySubmitterFormValue(submitter) {
+  const targetSelector = submitter?.dataset.formValueTarget;
+  if (!targetSelector) return;
+  const target = resolveTarget(targetSelector);
+  if (!target || !("value" in target)) return;
+  target.value = submitter.dataset.formValue || "";
+}
+
+function resolveSubmitAction(form, submitter) {
+  const submitterAction = submitter?.getAttribute("formaction");
+  if (submitterAction) return submitterAction;
+  const formAction = form.getAttribute("action");
+  if (formAction) return formAction;
+  return window.location.href;
+}
+
+function resolveSubmitMethod(form, submitter) {
+  const submitterMethod = submitter?.getAttribute("formmethod");
+  if (submitterMethod) return submitterMethod.toUpperCase();
+  const formMethod = form.getAttribute("method");
+  if (formMethod) return formMethod.toUpperCase();
+  return "GET";
+}
+
 document.addEventListener("submit", async (event) => {
   const form = event.target;
   const submitter = event.submitter;
@@ -47,9 +71,10 @@ document.addEventListener("submit", async (event) => {
   if (confirmMessage && !window.confirm(confirmMessage)) {
     return;
   }
+  applySubmitterFormValue(submitter);
 
-  const action = submitter?.formAction || form.action || window.location.href;
-  const method = (submitter?.formMethod || form.method || "get").toUpperCase();
+  const action = resolveSubmitAction(form, submitter);
+  const method = resolveSubmitMethod(form, submitter);
   if (method === "GET") {
     const params = new URLSearchParams(new FormData(form));
     await requestFragment(`${action}?${params.toString()}`, { method: "GET", headers: { "X-Requested-With": "fetch" } }, targetSelector);

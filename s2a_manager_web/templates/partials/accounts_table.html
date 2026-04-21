@@ -54,39 +54,27 @@
 {% endif %}
 
 <div class="pager">
-  <form method="get" action="/partials/accounts" data-partial-target="#accounts-panel" class="inline-form">
-    <input type="hidden" name="site_key" value="{{ form_state.site_key or current_site.key }}">
-    <input type="hidden" name="account_ids" value="{{ form_state.account_ids }}">
-    <input type="hidden" name="platform" value="{{ form_state.platform }}">
-    <input type="hidden" name="account_type" value="{{ form_state.account_type }}">
-    <input type="hidden" name="account_status" value="{{ form_state.account_status }}">
-    <input type="hidden" name="search" value="{{ form_state.search }}">
-    <input type="hidden" name="name_contains" value="{{ form_state.name_contains }}">
-    <input type="hidden" name="group_id" value="{{ form_state.group_id }}">
-    {% if form_state.ungrouped_only %}<input type="hidden" name="ungrouped_only" value="on">{% endif %}
-    <input type="hidden" name="max_accounts" value="{{ form_state.max_accounts }}">
-    <input type="hidden" name="scan_page_size" value="{{ form_state.scan_page_size }}">
-    <input type="hidden" name="batch_size" value="{{ form_state.batch_size }}">
-    <input type="hidden" name="table_page_size" value="{{ form_state.table_page_size }}">
-    <input type="hidden" name="table_page" value="{{ 1 if page <= 1 else page - 1 }}">
-    <button type="submit" class="ghost-button" {% if page <= 1 %}disabled{% endif %}>上一页</button>
-  </form>
+  <button
+    type="submit"
+    class="ghost-button"
+    form="manage-form"
+    formaction="/partials/accounts"
+    formmethod="get"
+    data-partial-target="#accounts-panel"
+    data-form-value-target="#manage-form [name='table_page']"
+    data-form-value="{{ 1 if page <= 1 else page - 1 }}"
+    {% if page <= 1 %}disabled{% endif %}
+  >上一页</button>
   <span class="muted">当前第 {{ page }} 页 / 共 {{ total_pages }} 页</span>
-  <form method="get" action="/partials/accounts" data-partial-target="#accounts-panel" class="inline-form">
-    <input type="hidden" name="site_key" value="{{ form_state.site_key or current_site.key }}">
-    <input type="hidden" name="account_ids" value="{{ form_state.account_ids }}">
-    <input type="hidden" name="platform" value="{{ form_state.platform }}">
-    <input type="hidden" name="account_type" value="{{ form_state.account_type }}">
-    <input type="hidden" name="account_status" value="{{ form_state.account_status }}">
-    <input type="hidden" name="search" value="{{ form_state.search }}">
-    <input type="hidden" name="name_contains" value="{{ form_state.name_contains }}">
-    <input type="hidden" name="group_id" value="{{ form_state.group_id }}">
-    {% if form_state.ungrouped_only %}<input type="hidden" name="ungrouped_only" value="on">{% endif %}
-    <input type="hidden" name="max_accounts" value="{{ form_state.max_accounts }}">
-    <input type="hidden" name="scan_page_size" value="{{ form_state.scan_page_size }}">
-    <input type="hidden" name="batch_size" value="{{ form_state.batch_size }}">
-    <input type="hidden" name="table_page_size" value="{{ form_state.table_page_size }}">
-    <input type="hidden" name="table_page" value="{{ page + 1 if page < total_pages else total_pages }}">
-    <button type="submit" class="ghost-button" {% if page >= total_pages %}disabled{% endif %}>下一页</button>
-  </form>
+  <button
+    type="submit"
+    class="ghost-button"
+    form="manage-form"
+    formaction="/partials/accounts"
+    formmethod="get"
+    data-partial-target="#accounts-panel"
+    data-form-value-target="#manage-form [name='table_page']"
+    data-form-value="{{ page + 1 if page < total_pages else total_pages }}"
+    {% if page >= total_pages %}disabled{% endif %}
+  >下一页</button>
 </div>
