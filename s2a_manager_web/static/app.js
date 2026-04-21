@@ -43,6 +43,10 @@ document.addEventListener("submit", async (event) => {
   const targetSelector = submitter?.dataset.partialTarget || form.dataset.partialTarget;
   if (!targetSelector) return;
   event.preventDefault();
+  const confirmMessage = submitter?.dataset.confirm || form.dataset.confirm;
+  if (confirmMessage && !window.confirm(confirmMessage)) {
+    return;
+  }
 
   const action = submitter?.formAction || form.action || window.location.href;
   const method = (submitter?.formMethod || form.method || "get").toUpperCase();

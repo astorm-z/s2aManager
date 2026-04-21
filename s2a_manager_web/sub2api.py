@@ -206,6 +206,9 @@ class AdminAPIClient:
     def update_account(self, account_id: int, payload: dict[str, Any]) -> Any:
         return self.request("PUT", f"/admin/accounts/{account_id}", payload)
 
+    def delete_account(self, account_id: int) -> Any:
+        return self.request("DELETE", f"/admin/accounts/{account_id}")
+
     def import_accounts_data(self, payload: dict[str, Any]) -> dict[str, Any]:
         result = self.request("POST", "/admin/accounts/data", payload)
         if not isinstance(result, dict):

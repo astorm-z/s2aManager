@@ -6,6 +6,7 @@ import json
 import re
 from datetime import datetime, timezone
 from typing import Any
+from urllib.parse import urlencode
 
 from fastapi import FastAPI, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -18,6 +19,7 @@ from .logic import (
     ACCOUNT_LIST_GROUP_UNGROUPED,
     AccountFilters,
     build_import_overrides,
+    bulk_delete_all_accounts,
     bulk_update_all_accounts,
     inspect_import_source,
     list_accounts_for_view,
@@ -620,6 +622,27 @@ def build_accounts_partial_context(form_state: dict[str, Any], client: AdminAPIC
     }
 
 
+def build_accounts_partial_refresh_url(form_state: dict[str, Any]) -> str:
+    query: dict[str, str] = {
+        "site_key": str(form_state.get("site_key") or ""),
+        "account_ids": str(form_state.get("account_ids") or ""),
+        "platform": str(form_state.get("platform") or ""),
+        "account_type": str(form_state.get("account_type") or ""),
+        "account_status": str(form_state.get("account_status") or ""),
+        "search": str(form_state.get("search") or ""),
+        "name_contains": str(form_state.get("name_contains") or ""),
+        "group_id": str(form_state.get("group_id") or ""),
+        "max_accounts": str(form_state.get("max_accounts") or ""),
+        "scan_page_size": str(form_state.get("scan_page_size") or ""),
+        "batch_size": str(form_state.get("batch_size") or ""),
+        "table_page_size": str(form_state.get("table_page_size") or ""),
+        "table_page": str(form_state.get("table_page") or 1),
+    }
+    if form_state.get("ungrouped_only"):
+        query["ungrouped_only"] = "on"
+    return f"/partials/accounts?{urlencode(query)}"
+
+
 def build_import_overrides_from_form(form: dict[str, Any], proxies: list[dict[str, Any]]) -> dict[str, Any]:
     proxy_id_raw = str(form.get("import_proxy_id") or "").strip()
     proxy_key = None
@@ -838,6 +861,66 @@ async def bulk_apply(request: Request) -> HTMLResponse:
         )
     except Exception as exc:
         return render(request, "partials/bulk_result.html", {"result": None, "error": str(exc), "json_preview": None, "is_preview": False}, status_code=400)
+
+
+@app.post("/actions/bulk-delete/preview", response_class=HTMLResponse)
+async def bulk_delete_preview(request: Request) -> HTMLResponse:
+    try:
+        require_auth(request)
+        form = await request.form()
+        current_site = get_current_site(request, form)
+        filters, form_state = build_filters_from_form(form)
+        form_state["site_key"] = current_site.key
+        result = bulk_delete_all_accounts(get_client(current_site.key), filters=filters, dry_run=True)
+        return render(
+            request,
+            "partials/delete_result.html",
+            {
+                "result": result,
+                "error": None,
+                "json_preview": preview_json(result),
+                "is_preview": True,
+                "refresh_url": None,
+                "current_site": current_site,
+            },
+        )
+    except Exception as exc:
+        return render(
+            request,
+            "partials/delete_result.html",
+            {"result": None, "error": str(exc), "json_preview": None, "is_preview": True, "refresh_url": None},
+            status_code=400,
+        )
+
+
+@app.post("/actions/bulk-delete/apply", response_class=HTMLResponse)
+async def bulk_delete_apply(request: Request) -> HTMLResponse:
+    try:
+        require_auth(request)
+        form = await request.form()
+        current_site = get_current_site(request, form)
+        filters, form_state = build_filters_from_form(form)
+        form_state["site_key"] = current_site.key
+        result = bulk_delete_all_accounts(get_client(current_site.key), filters=filters, dry_run=False)
+        return render(
+            request,
+            "partials/delete_result.html",
+            {
+                "result": result,
+                "error": None,
+                "json_preview": preview_json(result),
+                "is_preview": False,
+                "refresh_url": build_accounts_partial_refresh_url(form_state),
+                "current_site": current_site,
+            },
+        )
+    except Exception as exc:
+        return render(
+            request,
+            "partials/delete_result.html",
+            {"result": None, "error": str(exc), "json_preview": None, "is_preview": False, "refresh_url": None},
+            status_code=400,
+        )
 
 
 @app.post("/actions/scheduled-tasks/{task_id}/run-now", response_class=HTMLResponse)

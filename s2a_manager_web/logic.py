@@ -1277,6 +1277,60 @@ def bulk_update_all_accounts(
     }
 
 
+def bulk_delete_all_accounts(
+    client: AdminAPIClient,
+    *,
+    filters: AccountFilters,
+    dry_run: bool,
+) -> dict[str, Any]:
+    target_ids = collect_target_account_ids(client, filters)
+    if dry_run:
+        return {
+            "matched": len(target_ids),
+            "sample_ids": target_ids[:20],
+            "delete_mode": "single",
+        }
+
+    if not target_ids:
+        return {
+            "matched": 0,
+            "deleted_success": 0,
+            "deleted_failed": 0,
+            "delete_mode": "single",
+            "message": "没有匹配到任何账号",
+            "success_ids": [],
+            "failed_ids": [],
+            "results": [],
+        }
+
+    deleted_success = 0
+    deleted_failed = 0
+    success_ids: list[int] = []
+    failed_ids: list[int] = []
+    results: list[dict[str, Any]] = []
+
+    for account_id in target_ids:
+        try:
+            client.delete_account(account_id)
+            deleted_success += 1
+            success_ids.append(account_id)
+            results.append({"account_id": account_id, "success": True})
+        except Exception as exc:
+            deleted_failed += 1
+            failed_ids.append(account_id)
+            results.append({"account_id": account_id, "success": False, "error": str(exc)})
+
+    return {
+        "matched": len(target_ids),
+        "deleted_success": deleted_success,
+        "deleted_failed": deleted_failed,
+        "delete_mode": "single",
+        "success_ids": success_ids,
+        "failed_ids": failed_ids,
+        "results": results,
+    }
+
+
 def proxy_key_from_proxy(proxy: dict[str, Any]) -> str | None:
     protocol = non_empty(str(proxy.get("protocol") or ""))
     host = non_empty(str(proxy.get("host") or ""))

@@ -1,0 +1,50 @@
+{% if error %}
+<div class="alert danger">{{ error }}</div>
+{% elif result %}
+{% if not is_preview and refresh_url %}
+<div data-refresh-target="#accounts-panel" data-refresh-url="{{ refresh_url }}"></div>
+{% endif %}
+<div class="result-grid">
+  <div class="result-metric">
+    <span>命中账号</span>
+    <strong>{{ result.matched or 0 }}</strong>
+  </div>
+  <div class="result-metric">
+    <span>模式</span>
+    <strong>{{ result.delete_mode or "-" }}</strong>
+  </div>
+  {% if is_preview %}
+  <div class="result-metric">
+    <span>样例数量</span>
+    <strong>{{ result.sample_ids | length if result.sample_ids else 0 }}</strong>
+  </div>
+  {% else %}
+  <div class="result-metric">
+    <span>成功</span>
+    <strong>{{ result.deleted_success or 0 }}</strong>
+  </div>
+  <div class="result-metric">
+    <span>失败</span>
+    <strong>{{ result.deleted_failed or 0 }}</strong>
+  </div>
+  {% endif %}
+</div>
+{% if is_preview %}
+<div class="alert warning">预览只展示命中数量和样例 ID。真正执行时会逐个调用 sub2api 单删接口。</div>
+{% endif %}
+{% if result.message %}
+<div class="alert {% if result.deleted_failed %}warning{% else %}success{% endif %}">{{ result.message }}</div>
+{% endif %}
+{% if result.sample_ids %}
+<p class="muted">样例账号 ID：{{ result.sample_ids | join(", ") }}</p>
+{% endif %}
+{% if result.failed_ids %}
+<p class="muted">失败账号 ID：{{ result.failed_ids[:20] | join(", ") }}</p>
+{% endif %}
+<details class="json-preview" open>
+  <summary>{{ "预览结果 JSON" if is_preview else "删除结果 JSON" }}</summary>
+  <pre>{{ json_preview }}</pre>
+</details>
+{% else %}
+<div class="empty-state">暂无结果。</div>
+{% endif %}

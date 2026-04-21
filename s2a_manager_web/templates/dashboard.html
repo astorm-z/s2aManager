@@ -364,10 +364,48 @@
 
     <div class="card section-card">
       <div class="section-heading mini">
-        <h3>批量操作结果</h3>
+        <h3>批量修改结果</h3>
       </div>
       <div id="bulk-result-panel">
         <div class="empty-state">先点击“预览匹配结果”或“提交执行 / 创建延时任务”。</div>
+      </div>
+    </div>
+
+    <div class="card section-card">
+      <details class="collapse-block">
+        <summary class="collapse-summary">
+          <span class="collapse-heading">
+            <span class="collapse-subtitle">批量删除账号</span>
+            <span class="collapse-text">复用当前筛选条件，删除当前命中的所有分页账号。删除前请先预览，执行时会逐个调用 sub2api 单删接口，且会遵守“最多处理数量”限制。</span>
+          </span>
+        </summary>
+        <div class="collapse-body">
+          <div class="alert danger">
+            <strong>危险操作：</strong>
+            这里不会只删当前页，而是删除当前筛选命中的全部账号。点击执行后不可恢复。
+          </div>
+          <div class="actions-row">
+            <button type="submit" class="ghost-button" form="manage-form" formaction="/actions/bulk-delete/preview" formmethod="post" data-partial-target="#delete-result-panel">预览删除结果</button>
+            <button
+              type="submit"
+              class="danger-button"
+              form="manage-form"
+              formaction="/actions/bulk-delete/apply"
+              formmethod="post"
+              data-partial-target="#delete-result-panel"
+              data-confirm="确认删除当前筛选命中的账号吗？该操作不可恢复。"
+            >执行批量删除</button>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="card section-card">
+      <div class="section-heading mini">
+        <h3>批量删除结果</h3>
+      </div>
+      <div id="delete-result-panel">
+        <div class="empty-state">先点击“预览删除结果”或“执行批量删除”。</div>
       </div>
     </div>
   </section>
